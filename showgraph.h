@@ -11,6 +11,8 @@
 #include <stdarg.h>
 
 #define MAX_ALLOWED_WIDTH 120
+#define MIN_ALLOWED_WIDTH 40
+#define MAX_ALLOWED_SCALE 8
 
 #define ERROR(...) printf("ERROR: "__VA_ARGS__)
 
@@ -21,6 +23,7 @@ typedef struct
 	uint32_t max;
 	uint32_t min;
 	uint32_t step;
+	uint8_t  scale;
 } showgraph_axis_t;
 
 typedef struct

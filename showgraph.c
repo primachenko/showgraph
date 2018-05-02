@@ -27,6 +27,7 @@ int showgraph_create(showgraph_t ** showgraph)
 	}
 
 	memset(showgraph_in, 0, sizeof(*showgraph_in));
+	showgraph_in->x.scale = 1;
 
 	*showgraph = showgraph_in;
 
@@ -100,6 +101,50 @@ int showgraph_set_axis(showgraph_axis_t * axis, char * name, char * dim, uint32_
 	return 0;
 }
 
+static int showgraph_resampling(showgraph_t * showgraph, double ** samples, uint32_t * samples_len)
+{
+	if (NULL == showgraph)
+	{
+		ERROR("Invalid showgraph pointer\n");
+		return -1;
+	}
+
+	if (NULL == samples || NULL == samples_len)
+	{
+		ERROR("Invalid samples pointers\n");
+		return -1;
+	}
+
+	int scale = 1;
+
+	if (*samples_len < MIN_ALLOWED_WIDTH)
+	{
+		for (scale = 1; *samples_len * scale < MIN_ALLOWED_WIDTH; scale = scale << 1);
+		if (scale > MAX_ALLOWED_SCALE)
+		{
+			ERROR("Exceeded allowable scaling factor\n");
+			return -1;
+		}
+
+		showgraph->samples = (double *) calloc(*samples_len * scale, sizeof(double));
+		if (NULL == showgraph->samples)
+		{
+			ERROR("calloc() failed\n");
+			return -1;
+		}
+
+		double * samples_in = *samples;
+
+		for (int i = 0; i < *samples_len; i++)
+			for (int j = 0; j < scale; j++)
+				showgraph->samples[i * scale + j] = samples_in[i];
+
+		showgraph->x.scale = scale;
+	}
+
+	return 0;
+}
+
 int showgraph_set_samples(showgraph_t * showgraph, double * samples, uint32_t samples_len)
 {
 	if (NULL == showgraph)
@@ -108,9 +153,14 @@ int showgraph_set_samples(showgraph_t * showgraph, double * samples, uint32_t sa
 		return -1;
 	}
 
+	if (samples_len < MIN_ALLOWED_WIDTH)
+	{
+		return showgraph_resampling(showgraph, &samples, &samples_len);
+	}
+
 	if (samples_len > MAX_ALLOWED_WIDTH)
 	{
-		ERROR("Samples length more allowed value\n");
+		ERROR("The number of samples exceeds the maximum allowed\n");
 		return -1;
 	}
 
@@ -199,14 +249,14 @@ static int showgraph_make(showgraph_t * showgraph)
 		return -1;
 	}
 
-	int rc = showgraph_line_add(showgraph, "%*s\n\n", (int)((showgraph->x.max - showgraph->x.min)/showgraph->x.step/2 + 5 + strlen(showgraph->title)/2), showgraph->title);
+	int rc = showgraph_line_add(showgraph, "%*s\n\n", (int)((showgraph->x.max * showgraph->x.scale - showgraph->x.min * showgraph->x.scale)/showgraph->x.step/2 + 5 + strlen(showgraph->title)/2), showgraph->title);
 	if (rc != 0)
 	{
 		ERROR("showgraph_line_add() failed\n");
 		return -1;
 	}
 
-	rc = showgraph_line_add(showgraph, "Utilization, %%\n\n");
+	rc = showgraph_line_add(showgraph, "%s, %s\n\n", showgraph->y.name, showgraph->y.dim);
 	if (rc != 0)
 	{
 		ERROR("showgraph_line_add() failed\n");
@@ -224,7 +274,7 @@ static int showgraph_make(showgraph_t * showgraph)
 
 		if (y == showgraph->y.min) break;
 
-		for (int x = showgraph->x.min; x < showgraph->x.max; x += showgraph->x.step)
+		for (int x = showgraph->x.min * showgraph->x.scale; x < showgraph->x.max * showgraph->x.scale; x += showgraph->x.step)
 		{
 			rc = showgraph_line_add(showgraph, (showgraph->samples[x/showgraph->x.step] >= y) ? "#" : " ");
 			if (rc != 0)
@@ -242,9 +292,9 @@ static int showgraph_make(showgraph_t * showgraph)
 		}
 	}
 
-	for (int x = showgraph->x.min + showgraph->x.step; x <= showgraph->x.max; x += showgraph->x.step)
+	for (int x = showgraph->x.min * showgraph->x.scale + showgraph->x.step; x <= showgraph->x.max * showgraph->x.scale; x += showgraph->x.step)
 	{
-		rc = showgraph_line_add(showgraph, "%s", (x/showgraph->x.step%5 == 0) ? "|" : ".");
+		rc = showgraph_line_add(showgraph, "%s", (x/showgraph->x.step%(5 * (int)showgraph->x.scale) == 0) ? "|" : ".");
 		if (rc != 0)
 		{
 			ERROR("showgraph_line_add() failed\n");
@@ -259,18 +309,18 @@ static int showgraph_make(showgraph_t * showgraph)
 		return -1;
 	}
 
-	rc = showgraph_line_add(showgraph, "    %d", showgraph->x.min);
+	rc = showgraph_line_add(showgraph, "    %d", showgraph->x.min );
 	if (rc != 0)
 	{
 		ERROR("showgraph_line_add() failed\n");
 		return -1;
 	}
 
-	for (int x = showgraph->x.min + showgraph->x.step; x <= showgraph->x.max; x += showgraph->x.step)
+	for (int x = showgraph->x.min * showgraph->x.scale + showgraph->x.step; x <= showgraph->x.max * showgraph->x.scale; x += showgraph->x.step)
 	{
-		if (x/showgraph->x.step%5 == 0)
+		if (x/showgraph->x.step%(5 * (int)showgraph->x.scale) == 0)
 		{
-			rc = showgraph_line_add(showgraph, "%*d", 5, x);
+			rc = showgraph_line_add(showgraph, "%*d", 5 * (int)showgraph->x.scale, x / (int)showgraph->x.scale);
 			if (rc != 0)
 			{
 				ERROR("showgraph_line_add() failed\n");
@@ -286,7 +336,7 @@ static int showgraph_make(showgraph_t * showgraph)
 		return -1;
 	}
 
-	rc = showgraph_line_add(showgraph, "    %*s", showgraph->x.max/showgraph->x.step, "Time, min");
+	rc = showgraph_line_add(showgraph, "    %*s, %s", showgraph->x.max * (int)showgraph->x.scale/showgraph->x.step, showgraph->x.name, showgraph->x.dim);
 	if (rc != 0)
 	{
 		ERROR("showgraph_line_add() failed\n");

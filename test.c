@@ -19,17 +19,10 @@ int main(int argc, char **argv)
 	}
 
 	srand(getpid());
-	uint32_t samples_len = 100;
+	uint32_t samples_len = 27;
 	double samples[samples_len];
 	for (int i = 0; i <= samples_len; i++)
 		samples[i] = rand()%100;
-
-	rc = showgraph_set_samples(showgraph, samples, samples_len);
-	if (rc != 0)
-	{
-		ERROR("showgraph_set_samples() failed\n");
-		return -1;
-	}
 
 	rc = showgraph_set_axis(&showgraph->x, "X", "W", samples_len, 0, 1);
 	if (rc != 0)
@@ -42,6 +35,13 @@ int main(int argc, char **argv)
 	if (rc != 0)
 	{
 		ERROR("showgraph_set_axis() failed\n");
+		return -1;
+	}
+
+	rc = showgraph_set_samples(showgraph, samples, samples_len);
+	if (rc != 0)
+	{
+		ERROR("showgraph_set_samples() failed\n");
 		return -1;
 	}
 
