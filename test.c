@@ -24,17 +24,31 @@ int main(int argc, char **argv)
 	for (int i = 0; i <= samples_len; i++)
 		samples[i] = rand()%100;
 
-	rc = showgraph_set_axis(&showgraph->x, "X", "W", samples_len, 0, 1);
+	rc = showgraph_set_axis_text(&showgraph->x, "X", "W");
 	if (rc != 0)
 	{
-		ERROR("showgraph_set_axis() failed\n");
+		ERROR("showgraph_set_axis_text() failed\n");
 		return -1;
 	}
 
-	rc = showgraph_set_axis(&showgraph->y, "Y", "m/s", 100, 0, 10);
+	rc = showgraph_set_axis_text(&showgraph->y, "Y", "m/s");
 	if (rc != 0)
 	{
-		ERROR("showgraph_set_axis() failed\n");
+		ERROR("showgraph_set_axis_text() failed\n");
+		return -1;
+	}
+
+	rc = showgraph_set_range(showgraph, 100, 0);
+	if (rc != 0)
+	{
+		ERROR("showgraph_set_range() failed\n");
+		return -1;
+	}
+
+	rc = showgraph_set_scale(showgraph, 10);
+	if (rc != 0)
+	{
+		ERROR("showgraph_set_scale() failed\n");
 		return -1;
 	}
 
