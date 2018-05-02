@@ -40,4 +40,21 @@ int showgraph_set_samples(showgraph_t * showgraph, double * samples, uint32_t sa
 int showgraph_print(showgraph_t * showgraph);
 int showgraph_destroy(showgraph_t * showgraph);
 
+/*
+	how it is used:
+
+	showgraph_t * showgraph;
+	showgraph_create(&showgraph);
+	showgraph_set_title(showgraph, "You title");
+	// max, min and step parameters must obey the inequality
+	// (max - min) % step == 0
+	showgraph_set_axis(&showgraph.x, "X", "sec", 50, 0, 1);
+	showgraph_set_axis(&showgraph.x, "Y", "kbps", 100, 0, 10);
+	// samples is pointer to an array with counts
+	// samples_len is number of counts in the array, MUST BE equal to the number of steps along the x axis 
+	showgraph_set_samples(showgraph, samples, samples_len);
+	showgraph_print(showgraph);
+	showgraph_destroy(showgraph);
+*/
+
 #endif /* SHOWGRAPH_H */
