@@ -281,11 +281,14 @@ static int showgraph_make(showgraph_t * showgraph)
 		return -1;
 	}
 
-	int rc = showgraph_line_add(showgraph, "%*s\n\n", (int)((showgraph->x.max * showgraph->x.scale - showgraph->x.min * showgraph->x.scale)/2 + 5 + strlen(showgraph->title)/2), showgraph->title);
-	if (rc != 0)
+	if (showgraph->title)
 	{
-		ERROR("showgraph_line_add() failed\n");
-		return -1;
+		int rc = showgraph_line_add(showgraph, "%*s\n\n", (int)((showgraph->x.max * showgraph->x.scale - showgraph->x.min * showgraph->x.scale)/2 + 5 + strlen(showgraph->title)/2), showgraph->title);
+		if (rc != 0)
+		{
+			ERROR("showgraph_line_add() failed\n");
+			return -1;
+		}
 	}
 
 	rc = showgraph_line_add(showgraph, "%s, %s\n\n", showgraph->y.name, showgraph->y.dim);
